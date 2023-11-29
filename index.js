@@ -25,14 +25,46 @@ const client = new MongoClient(uri, {
 
 async function run() {
   try {
-    // Connect the client to the server	(optional starting in v4.7)
-    // await client.connect();
-    // Send a ping to confirm a successful connection
+
+    const articlesCollection = client.db('timesTalkDb').collection('articles');
+    const reviewCollection = client.db('timesTalkDb').collection('review');
+    const usersCollection = client.db('timesTalkDb').collection('users');
+
+
+   
+      // users related api
+
+      app.post('/users', async(req,res)=> {
+        const user = req.body;
+        // insert email if user doesnt exists: 
+        // you can do this many ways (1. email unique, 2. upsert 3. simple checking)
+        const query = { email: user.email }
+        const existingUser = await usersCollection.findOne(query);
+        if (existingUser) {
+            return res.send({ message: 'user already exists', insertedId: null })
+        }
+        const result = await usersCollection.insertOne(user);
+        res.send(result);
+    })
+ 
+
+    app.get('/articles', async(req,res) => {
+        const result = await articlesCollection.find().toArray();
+        res.send(result);
+    })
+
+    app.get('/review', async(req,res) => {
+        const result = await reviewCollection.find().toArray();
+        res.send(result);
+    })
+
+   
+
     // await client.db("admin").command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
+
   } finally {
-    // Ensures that the client will close when you finish/error
-    // await client.close();
+    
   }
 }
 run().catch(console.dir);
