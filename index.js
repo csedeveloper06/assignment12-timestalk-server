@@ -34,7 +34,28 @@ async function run() {
    
       // users related api
 
-      app.post('/users', async(req,res)=> {
+    app.get('/users', async (req, res) => {
+        const result = await usersCollection.find().toArray();
+        res.send(result);
+    });
+
+    app.get('/users/admin/:email', async (req, res) => {
+        const email = req.params.email;
+
+        // if (email !== req.decoded.email) {
+        //   return res.status(403).send({ message: 'forbidden access' })
+        // }
+
+        const query = { email: email };
+        const user = await usersCollection.findOne(query);
+        let admin = false;
+        if (user) {
+            admin = user?.role === 'admin';
+        }
+        res.send({ admin });
+    })
+
+    app.post('/users', async(req,res)=> {
         const user = req.body;
         // insert email if user doesnt exists: 
         // you can do this many ways (1. email unique, 2. upsert 3. simple checking)
@@ -44,6 +65,27 @@ async function run() {
             return res.send({ message: 'user already exists', insertedId: null })
         }
         const result = await usersCollection.insertOne(user);
+        res.send(result);
+    })
+
+
+    app.patch('/users/admin/:id', async (req, res) => {
+        const id = req.params.id;
+        const filter = { _id: new ObjectId(id) };
+        const updatedDoc = {
+          $set: {
+            role: 'admin'
+          }
+        }
+        const result = await usersCollection.updateOne(filter, updatedDoc);
+        res.send(result);
+    })
+
+
+    app.delete('/users/:id', async (req, res) => {
+        const id = req.params.id;
+        const query = { _id: new ObjectId(id) }
+        const result = await usersCollection.deleteOne(query);
         res.send(result);
     })
  
