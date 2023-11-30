@@ -39,21 +39,21 @@ async function run() {
         res.send(result);
     });
 
-    app.get('/users/admin/:email', async (req, res) => {
-        const email = req.params.email;
+    // app.get('/users/admin/:email', async (req, res) => {
+    //     const email = req.params.email;
 
-        // if (email !== req.decoded.email) {
-        //   return res.status(403).send({ message: 'forbidden access' })
-        // }
+    //     if (email !== req.decoded.email) {
+    //       return res.status(403).send({ message: 'forbidden access' })
+    //     }
 
-        const query = { email: email };
-        const user = await usersCollection.findOne(query);
-        let admin = false;
-        if (user) {
-            admin = user?.role === 'admin';
-        }
-        res.send({ admin });
-    })
+    //     const query = { email: email };
+    //     const user = await usersCollection.findOne(query);
+    //     let admin = false;
+    //     if (user) {
+    //         admin = user?.role === 'admin';
+    //     }
+    //     res.send({ admin });
+    // })
 
     app.post('/users', async(req,res)=> {
         const user = req.body;
@@ -71,7 +71,7 @@ async function run() {
 
     app.patch('/users/admin/:id', async (req, res) => {
         const id = req.params.id;
-        const filter = { _id: new ObjectId(id) };
+        const filter = {_id: new ObjectId(id) };
         const updatedDoc = {
           $set: {
             role: 'admin'
@@ -82,7 +82,7 @@ async function run() {
     })
 
 
-    app.delete('/users/:id', async (req, res) => {
+    app.delete('/users/:id', async(req, res) => {
         const id = req.params.id;
         const query = { _id: new ObjectId(id) }
         const result = await usersCollection.deleteOne(query);
@@ -103,7 +103,7 @@ async function run() {
    
 
     // await client.db("admin").command({ ping: 1 });
-    console.log("Pinged your deployment. You successfully connected to MongoDB!");
+    //console.log("Pinged your deployment. You successfully connected to MongoDB!");
 
   } finally {
     
