@@ -1,4 +1,5 @@
-const express = require ('express');
+
+const express = require('express');
 const app = express();
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 require('dotenv').config();
@@ -28,27 +29,28 @@ async function run() {
   try {
 
     const articlesCollection = client.db('timesTalkDb').collection('articles');
+    const publishersCollection = client.db('timesTalkDb').collection('publishers');
     const reviewCollection = client.db('timesTalkDb').collection('review');
     const cartCollection = client.db('timesTalkDb').collection('carts');
     const usersCollection = client.db('timesTalkDb').collection('users');
 
 
        // jwt related api
-       app.post('/jwt', async (req, res) => {
+      app.post('/jwt', async( req,res ) =>{
         const user = req.body;
-        const token = jwt.sign(user, process.env.ACCESS_TOKEN, { expiresIn: '1h' });
+        const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1h' });
         res.send({ token });
       })
 
 
       // middlewares 
       const verifyToken = (req, res, next) => {
-        console.log('inside verify token', req.headers.authorization);
+        //console.log('inside verify token', req.headers.authorization);
         if (!req.headers.authorization) {
           return res.status(401).send({ message: 'unauthorized access' });
         }
         const token = req.headers.authorization.split(' ')[1];
-        jwt.verify(token, process.env.ACCESS_TOKEN, (err, decoded) => {
+        jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
           if (err) {
             return res.status(401).send({ message: 'unauthorized access' })
           }
@@ -56,8 +58,6 @@ async function run() {
           next();
         })
     }
-
-
 
        // use verify admin after verifyToken
        const verifyAdmin = async (req, res, next) => {
@@ -70,9 +70,6 @@ async function run() {
         }
         next();
       }
-
-
-
 
       // carts collection
       app.get('/carts', async (req, res) => {
@@ -110,11 +107,12 @@ async function run() {
         }
         const query = { email: email };
         const user = await usersCollection.findOne(query);
-        let admin = true;
+        console.log(user)
+        let admin = false;
         if (user) {
             admin = user?.role === 'admin';
         }
-        res.send({ admin });
+        res.send({admin});
     })
 
     app.post('/users', async(req,res)=> {
@@ -131,7 +129,7 @@ async function run() {
     })
 
 
-    app.patch('/users/admin/:id',  verifyToken, verifyAdmin, async (req, res) => {
+    app.patch('/users/admin/:id', async (req, res) => {
         const id = req.params.id;
         const filter = { _id: new ObjectId(id) };
         const updatedDoc = {
@@ -157,11 +155,25 @@ async function run() {
         res.send(result);
     })
 
+
+    app.get('/publishers', async(req,res) => {
+        const result = await publishersCollection.find().toArray();
+        res.send(result);
+    })
+
+
+    app.post('/publishers',  verifyToken, verifyAdmin, async( req,res )=> {
+      const item = req.body;
+      const result = await publishersCollection.insertOne(item);
+      res.send(result);
+    })
+
     app.post('/articles', async( req,res )=> {
       const item = req.body;
       const result = await articlesCollection.insertOne(item);
       res.send(result);
     })
+  
 
     app.get('/review', async(req,res) => {
         const result = await reviewCollection.find().toArray();
