@@ -65,7 +65,6 @@ async function run() {
         const query = { email: email };
         const user = await usersCollection.findOne(query);
         const isAdmin = user?.role === 'admin';
-        console.log(isAdmin);
         if (!isAdmin) {
           return res.status(403).send({ message: 'forbidden access' });
         }
@@ -156,6 +155,12 @@ async function run() {
     app.get('/articles', async(req,res) => {
         const result = await articlesCollection.find().toArray();
         res.send(result);
+    })
+
+    app.post('/articles', async( req,res )=> {
+      const item = req.body;
+      const result = await articlesCollection.insertOne(item);
+      res.send(result);
     })
 
     app.get('/review', async(req,res) => {
