@@ -33,6 +33,7 @@ async function run() {
     const reviewCollection = client.db('timesTalkDb').collection('review');
     const cartCollection = client.db('timesTalkDb').collection('carts');
     const usersCollection = client.db('timesTalkDb').collection('users');
+    const manageArticlesCollection = client.db('timesTalkDb').collection('manageArticles');
 
 
        // jwt related api
@@ -91,6 +92,28 @@ async function run() {
         const result = await cartCollection.deleteOne(query);
         res.send(result);
       })
+
+
+      // manageArticles related API
+
+      app.get('/manageArticles', async(req , res) => {
+        let query = {};
+        if(req.query?.email){
+          query = { 
+            authorEmail: req.query.email }
+        }
+        console.log(query)
+        const result = await manageArticlesCollection.find(query).toArray();
+        res.send(result);
+      })
+
+
+      app.post('/manageArticles', async (req, res) => {
+        const manageArticles = req.body;
+        console.log(manageArticles);
+        const result = await manageArticlesCollection.insertOne(manageArticles);
+        res.send(result);
+    });
    
       // users related api
 
