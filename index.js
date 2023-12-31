@@ -4,6 +4,7 @@ const app = express();
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 require('dotenv').config();
 const cors = require('cors');
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 const jwt = require('jsonwebtoken');
 const port = process.env.PORT || 5000;
 
@@ -34,6 +35,7 @@ async function run() {
     const cartCollection = client.db('timesTalkDb').collection('carts');
     const usersCollection = client.db('timesTalkDb').collection('users');
     const manageArticlesCollection = client.db('timesTalkDb').collection('manageArticles');
+    const paymentCollection = client.db("timestalkDb").collection("payments");
 
 
        // jwt related api
@@ -179,6 +181,7 @@ async function run() {
     })
 
 
+
     app.get('/publishers', async(req,res) => {
         const result = await publishersCollection.find().toArray();
         res.send(result);
@@ -196,14 +199,89 @@ async function run() {
       const result = await articlesCollection.insertOne(item);
       res.send(result);
     })
-  
+
+  app.patch('/articles/:id', async(req,res)=>{
+    const id = req.params.id;
+    const filter = {_id: new ObjectId(id)};
+    const updatedDoc = {
+      $inc: {
+        views: 1
+      }
+    }
+    const result = await articlesCollection.updateOne(filter,updatedDoc);
+    res.send(result);
+  })
+
+
+
+  app.delete('/articles/:id', async (req, res) => {
+    const id = req.params.id;
+    const query = { _id: new ObjectId(id) }
+    const result = await articlesCollection.deleteOne(query);
+    res.send(result);
+  });
+
+  app.put('/articles/:id', async (req, res) => {
+    const id = req.params.id;
+    const filter = { _id: new ObjectId(id) };
+    console.log("approved id is",id)
+    const updatedDoc = {
+      $set: {
+        status: 'approved'
+      }
+    }
+    const result = await articlesCollection.updateOne(filter, updatedDoc);
+    res.send(result);
+})
 
     app.get('/review', async(req,res) => {
         const result = await reviewCollection.find().toArray();
         res.send(result);
     })
 
-  
+    // payment intent
+    app.post('/create-payment-intent', async (req, res) => {
+      const { price } = req.body;
+      const amount = parseInt(price * 100);
+      console.log(amount, 'amount inside the intent')
+
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: amount,
+        currency: 'usd',
+        payment_method_types: ['card']
+      });
+
+      res.send({
+        clientSecret: paymentIntent.client_secret
+      })
+    });
+
+    app.get('/payments/:email', verifyToken, async (req, res) => {
+      const query = { email: req.params.email }
+      if (req.params.email !== req.decoded.email){
+        return res.status(403).send({ message: 'forbidden access' });
+      }
+      const result = await paymentCollection.find(query).toArray();
+      res.send(result);
+    })
+
+
+    app.post('/payments', async (req, res) => {
+      const payment = req.body;
+      const paymentResult = await paymentCollection.insertOne(payment);
+
+      //  carefully delete each item from the cart
+      console.log('payment info', payment);
+      const query = {
+        _id: {
+          $in: payment.cartIds.map(id => new ObjectId(id))
+        }
+      };
+
+      const deleteResult = await cartCollection.deleteMany(query);
+
+      res.send({ paymentResult, deleteResult });
+    })
 
   } finally {
     
