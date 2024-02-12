@@ -32,10 +32,16 @@ async function run() {
     const articlesCollection = client.db('timesTalkDb').collection('articles');
     const publishersCollection = client.db('timesTalkDb').collection('publishers');
     const reviewCollection = client.db('timesTalkDb').collection('review');
+    const likeCollection = client.db('timesTalkDb').collection('likes');
+    const dislikeCollection = client.db('timesTalkDb').collection('dislikes');
+    const commentCollection = client.db('timesTalkDb').collection('comments');
     const cartCollection = client.db('timesTalkDb').collection('carts');
     const usersCollection = client.db('timesTalkDb').collection('users');
     const manageArticlesCollection = client.db('timesTalkDb').collection('manageArticles');
     const paymentCollection = client.db("timestalkDb").collection("payments");
+
+
+
 
 
        // jwt related api
@@ -44,6 +50,8 @@ async function run() {
         const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1h' });
         res.send({ token });
       })
+
+
 
 
       // middlewares 
@@ -74,14 +82,15 @@ async function run() {
         next();
       }
 
-      // carts collection
+
+     
       app.get('/carts', async (req, res) => {
         const email = req.query.email;
         const query = { email: email };
         const result = await cartCollection.find(query).toArray();
         res.send(result);
       });
-  
+      
       app.post('/carts', async (req, res) => {
         const cartItem = req.body;
         const result = await cartCollection.insertOne(cartItem);
@@ -92,6 +101,49 @@ async function run() {
         const id = req.params.id;
         const query = { _id: new ObjectId(id) }
         const result = await cartCollection.deleteOne(query);
+        res.send(result);
+      })
+
+
+      // likes collection 
+
+      app.get('/likes', async( req,res )=> {
+        // const likeId = req.query.likeId;
+        // const query = {likeId:likeId};
+        const result = await likeCollection.find().toArray();
+        res.send(result);
+      })
+
+      app.post('/likes', async( req, res )=> {
+        const likeItem = req.body;
+        const result = await likeCollection.insertOne(likeItem);
+        res.send(result);
+      })
+
+      //dislikes collection
+      app.get('/dislikes', async(req,res)=>{
+        const result = await dislikeCollection.find().toArray();
+        res.send(result);
+      })
+
+      app.post('/dislikes', async( req, res )=> {
+        const dislikeItem = req.body;
+        const result = await dislikeCollection.insertOne(dislikeItem);
+        res.send(result);
+      })
+
+      //comments collection
+
+      app.get('/comments', async(req,res)=>{
+        // const email = req.query.email;
+        // const query = { email: email }
+        const result = await commentCollection.find().toArray();
+        res.send(result);
+      })
+
+      app.post('/comments', async( req, res )=> {
+        const commentItem = req.body;
+        const result = await commentCollection.insertOne(commentItem);
         res.send(result);
       })
 
@@ -154,6 +206,19 @@ async function run() {
     })
 
 
+    app.put('/articles/:id', async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) };
+      const updatedDoc = {
+        $set: {
+          status: 'approved'
+        }
+      }
+      const result = await articlesCollection.updateOne(filter, updatedDoc);
+      res.send(result);
+  })
+
+
     app.patch('/users/admin/:id', async (req, res) => {
         const id = req.params.id;
         const filter = { _id: new ObjectId(id) };
@@ -164,6 +229,31 @@ async function run() {
         }
         const result = await usersCollection.updateOne(filter, updatedDoc);
         res.send(result);
+    })
+
+    app.patch('/articles/:id', verifyToken, verifyAdmin, async (req, res) => {
+        const id = req.params.id;
+        const filter = { _id: new ObjectId(id) };
+        const updatedDoc = {
+          $set: {
+            status: 'diclined'
+          }
+        }
+        const result = await articlesCollection.updateOne(filter, updatedDoc);
+        res.send(result);
+    })
+
+    
+    app.put('/articles/:id', verifyToken, verifyAdmin, async( req,res ) => {
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) };
+      const updatedDoc = {
+        $set: {
+          isPremium: 'yes'
+        },
+      };
+      const result = await articlesCollection.updateOne( filter,updatedDoc );
+      res.send(result);
     })
 
 
@@ -193,6 +283,7 @@ async function run() {
       const result = await publishersCollection.insertOne(item);
       res.send(result);
     })
+ 
 
     app.post('/articles', async( req,res )=> {
       const item = req.body;
@@ -211,7 +302,7 @@ async function run() {
     const result = await articlesCollection.updateOne(filter,updatedDoc);
     res.send(result);
   })
-
+ 
 
 
   app.delete('/articles/:id', async (req, res) => {
@@ -221,18 +312,7 @@ async function run() {
     res.send(result);
   });
 
-  app.put('/articles/:id', async (req, res) => {
-    const id = req.params.id;
-    const filter = { _id: new ObjectId(id) };
-    console.log("approved id is",id)
-    const updatedDoc = {
-      $set: {
-        status: 'approved'
-      }
-    }
-    const result = await articlesCollection.updateOne(filter, updatedDoc);
-    res.send(result);
-})
+
 
     app.get('/review', async(req,res) => {
         const result = await reviewCollection.find().toArray();
@@ -282,6 +362,11 @@ async function run() {
 
       res.send({ paymentResult, deleteResult });
     })
+
+
+  
+
+
 
   } finally {
     
